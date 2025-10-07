@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="./styles/indexstyles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+    <h1>TODO Tracker</h1>
+    <p class="subtitle">Stay organized. Register now to manage your tasks.</p>
+    
+    <h2>Create Account</h2>
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="Enter your email">
+      </div>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Enter your username">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter your password">
+      </div>
+      <button type="submit">Register</button>
+    </form>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+
+
+  <script>
+  const form = document.getElementById('registerForm');
+    const toastContainer = document.getElementById('toastContainer');
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+
+      setTimeout(() => toast.classList.add('show'), 100);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if (!email || !username || !password) {
+        showToast('All fields are required', 'error');
+        return;
+      }
+      // frontend
+fetch("http://localhost:5000/register", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, username, password })
+})
+  .then(res => res.json())
+  .then(data => {
+    console.log("Backend response:", data); // <-- check what success actually is
+
+    // Ensure boolean comparison
+    const isSuccess = data.success === true || data.success === "true";
+
+    if (!isSuccess) {
+      showToast(data.message, 'error');
+      return; // stop further execution
+    }
+
+    showToast(data.message, 'success');
+    setTimeout(() => {
+      window.location.href = "login.html";
+    }, 1500);
+  })
+  .catch(err => {
+    console.error("Fetch error:", err);
+    showToast("Cannot reach backend", "error");
+  });
+
+
+
+
+      // Success: show toast and redirect
+      // showToast('Form is valid. Redirecting to login...', 'success');
+      
+    });
+
+</script>
+
+
+</body>
+</html>

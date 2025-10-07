@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="./styles/dashboardstyles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+    <h1 class="clickable" onclick="window.location.href='index.html'">TODO Tracker</h1>
+
+    <div class="profile-btn" onclick="window.location.href='profile.html'">
+      <!-- Simple avatar icon (person silhouette) -->
+      <svg viewBox="0 0 24 24">
+        <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/>
+      </svg>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Add Task Section -->
+    <div class="add-task">
+      <input type="text" id="newTask" placeholder="Enter new task">
+      <button id="addTaskBtn">Add Task</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active">All</div>
+      <div class="tab">Pending</div>
+      <div class="tab">Completed</div>
+    </div>
+
+    <!-- Tasks List -->
+    <div class="tasks" id="tasksContainer">
+      <!-- Dummy task card -->
+      <div class="task-card">
+        <div class="task-info">
+          <div class="task-title">Sample Task Title</div>
+          <div class="task-date">Created on: 2025-09-29</div>
+        </div>
+        <div class="task-actions">
+          <button class="complete-btn">Mark as Complete</button>
+          <button class="delete-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+<script>
+    const toastContainer = document.getElementById('toastContainer');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const newTaskInput = document.getElementById('newTask');
+    const tabs = document.querySelectorAll('.tab');
+    const tasksContainer = document.getElementById('tasksContainer');
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+
+      setTimeout(() => toast.classList.add('show'), 100);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ✅ Function to render tasks dynamically
+    function renderTasks(tasks) {
+      tasksContainer.innerHTML = ''; // clear old tasks
+
+      if (!tasks || tasks.length === 0) {
+        tasksContainer.innerHTML = '<p>No tasks found.</p>';
+        return;
+      }
+
+      tasks.forEach(task => {
+        const taskCard = document.createElement('div');
+        taskCard.className = 'task-card';
+
+        taskCard.innerHTML = `
+          <div class="task-info">
+            <div class="task-title">${task.title}</div>
+            <div class="task-date">Status: ${task.isCompleted ? 'Completed' : 'Pending'}</div>
+          </div>
+          <div class="task-actions">
+            <button class="complete-btn">Mark as Complete</button>
+            <button class="delete-btn">Delete</button>
+          </div>
+        `;
+
+        tasksContainer.appendChild(taskCard);
+      });
+    }
+
+    // ✅ Fetch tasks on page load (for All tab)
+    async function fetchTasks() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showToast('Please login first', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('http://localhost:5000/gettodos', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          }
+        });
+
+        if (!res.ok) {
+          showToast('Error fetching tasks', 'error');
+          return;
+        }
+
+        const data = await res.json();
+        renderTasks(data);
+
+      } catch (err) {
+        console.error('Error fetching tasks:', err);
+        showToast('Cannot reach backend', 'error');
+      }
+    }
+
+    // ✅ Add task button (frontend validation only)
+    addTaskBtn.addEventListener('click', async () => {
+      const task = newTaskInput.value.trim();
+      if (!task) {
+          showToast('Task cannot be empty', 'error');
+          return;
+      }
+
+      const token = localStorage.getItem('token'); 
+      if (!token) {
+          showToast('Please login first', 'error');
+          return;
+      }
+
+      try {
+          const res = await fetch('http://localhost:5000/createtodo', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': token
+              },
+              body: JSON.stringify({ title: task })
+          });
+
+          const data = await res.json();
+
+          if (data.message === "todo added") {
+              showToast('Task added successfully', 'success');
+              newTaskInput.value = '';
+              fetchTasks(); // refresh tasks list after adding
+          } else {
+              showToast(data.message, 'error');
+          }
+
+      } catch (err) {
+          console.error('Error adding task:', err);
+          showToast('Cannot reach backend', 'error');
+      }
+    });
+
+    // Tab switching (just UI, you can extend later)
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        if (tab.textContent === 'All') {
+          fetchTasks();
+        }
+        // later: add filtering for Pending/Completed
+      });
+    });
+
+    // ✅ Fetch tasks automatically on page load
+    window.onload = fetchTasks;
+
+</script>
+
+
+
+</body>
+
+
+</html>
